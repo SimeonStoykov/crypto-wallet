@@ -62,7 +62,9 @@ function App() {
       ) : (
         <>
           {network?.chainId && network.chainId !== ethMainnetChainId && (
-            <p>You have not selected the Ethereum Mainnet! Please switch to it!</p>
+            <p className="warning">
+              You have not selected the Ethereum Mainnet! Please switch to it!
+            </p>
           )}
           {account && (
             <p className="connection-info">

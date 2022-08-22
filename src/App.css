@@ -11,3 +11,11 @@ main {
   text-align: center;
   margin: 0;
 }
+
+.warning {
+  background-color: #ffc107;
+  padding: 15px;
+  border-radius: 8px;
+  font-weight: bold;
+  margin: 0 10px;
+}
