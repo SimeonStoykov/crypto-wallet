@@ -17,6 +17,7 @@ export interface Data {
   account?: string;
   connectingWalletError: boolean;
   fetchTokensError: boolean;
+  connectingWalletLoading: boolean;
   network?: Network;
   provider?: Provider;
   tokens: Token[];

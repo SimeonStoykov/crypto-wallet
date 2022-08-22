@@ -23,7 +23,7 @@ const web3Modal = new Web3Modal({ cacheProvider: true, providerOptions });
 
 function App() {
   const [data, setData] = useState<Data>(initialData);
-  const { account, connectingWalletError, fetchTokensError, network, provider, tokens } = data;
+  const { account, fetchTokensError, network, provider, tokens, connectingWalletLoading } = data;
 
   const handleChainChange: ChainChangedEventHandler = useCallback(() => {
     window.location.reload();
@@ -56,19 +56,24 @@ function App() {
   return (
     <main>
       <h1>Crypto Wallet</h1>
-      {network?.chainId && network.chainId !== ethMainnetChainId && (
-        <p>You have not selected the Ethereum Mainnet! Please switch to it!</p>
-      )}
-      {account && (
-        <section>
-          Connected to {account}
-          {network?.name && network.name !== 'unknown' && (
-            <span> on the {network.name} network</span>
+      {connectingWalletLoading ? (
+        <p>Loading...</p>
+      ) : (
+        <>
+          {network?.chainId && network.chainId !== ethMainnetChainId && (
+            <p>You have not selected the Ethereum Mainnet! Please switch to it!</p>
           )}
-        </section>
+          {account && (
+            <section>
+              Connected to <strong>{account}</strong>
+              {network?.name && network.name !== 'unknown' && (
+                <span> on the {network.name} network</span>
+              )}
+            </section>
+          )}
+          <TokenList tokens={tokens} fetchTokensError={fetchTokensError} />
+        </>
       )}
-      {connectingWalletError && <section>Error connecting wallet!</section>}
-      <TokenList tokens={tokens} fetchTokensError={fetchTokensError} />
       <ConnectionButton data={data} setData={setData} web3Modal={web3Modal} />
     </main>
   );

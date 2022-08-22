@@ -15,7 +15,7 @@ interface Props {
 }
 
 function ConnectionButton({ data, setData, web3Modal }: Props) {
-  const { account } = data;
+  const { account, connectingWalletLoading, connectingWalletError } = data;
 
   useEffect(() => {
     if (web3Modal.cachedProvider) {
@@ -26,6 +26,8 @@ function ConnectionButton({ data, setData, web3Modal }: Props) {
 
   const connectWallet = async () => {
     try {
+      setData({ ...data, connectingWalletLoading: true });
+
       let newData = {} as Data;
       const web3ModalInstance = await web3Modal.connect();
       const ethersProvider = new ethers.providers.Web3Provider(web3ModalInstance) as Provider;
@@ -44,9 +46,9 @@ function ConnectionButton({ data, setData, web3Modal }: Props) {
         newData.tokens = [{ ...ethBaseInfo, balance: ethBalance }];
       }
 
-      setData(newData);
+      setData({ ...newData, connectingWalletLoading: false });
     } catch (err) {
-      setData({ ...data, connectingWalletError: true });
+      setData({ ...data, connectingWalletError: true, connectingWalletLoading: false });
     }
   };
 
@@ -55,10 +57,17 @@ function ConnectionButton({ data, setData, web3Modal }: Props) {
     setData(initialData);
   };
 
-  return account ? (
-    <button onClick={disconnectWallet}>Disconnect Wallet</button>
-  ) : (
-    <button onClick={connectWallet}>Connect Wallet</button>
+  if (connectingWalletLoading) return null;
+
+  return (
+    <>
+      {connectingWalletError && <p>Error connecting wallet!</p>}
+      {account ? (
+        <button onClick={disconnectWallet}>Disconnect Wallet</button>
+      ) : (
+        <button onClick={connectWallet}>Connect Wallet</button>
+      )}
+    </>
   );
 }
 
