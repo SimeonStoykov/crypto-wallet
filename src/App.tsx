@@ -1,36 +1,15 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import Web3Modal from 'web3modal';
+import WalletConnectProvider from '@walletconnect/web3-provider';
+
+import { AccountsChangedEventHandler, ChainChangedEventHandler, Data } from './types';
+import config from './config';
+import ConnectionButton from './components/ConnectionButton/ConnectionButton';
+import TokenList from './components/TokenList/TokenList';
+
 import './App.css';
 
-import Web3Modal from 'web3modal';
-import { ContractInterface, ethers } from 'ethers';
-import WalletConnectProvider from '@walletconnect/web3-provider';
-import ABI from './ABI.json';
-import { Web3Provider, Network, ExternalProvider } from '@ethersproject/providers';
-
-type AccountsChangedEventHandler = (accounts: string[]) => void;
-type ChainChangedEventHandler = (chainId: string) => void;
-type MetaMaskEventHandler = AccountsChangedEventHandler | ChainChangedEventHandler;
-
-interface CustomExternalProvider extends ExternalProvider {
-  on?: (event: string, handler: MetaMaskEventHandler) => void;
-  removeListener?: (event: string, handler: MetaMaskEventHandler) => void;
-}
-
-interface Provider extends Omit<Web3Provider, 'provider'> {
-  provider: CustomExternalProvider;
-}
-
-interface Token {
-  name: string;
-  balance: number;
-  decimals: number;
-  symbol: string;
-  totalSupply: number;
-}
-
-const ethMainnetChainId = 1;
-
-const infuraId = 'd35af9722b934a55b4d6b8896f06640b';
+const { ethMainnetChainId, infuraId, initialData } = config;
 
 const providerOptions = {
   walletconnect: {
@@ -39,20 +18,16 @@ const providerOptions = {
   }
 };
 
-const getAddressInfoUrl = `https://api.ethplorer.io/getAddressInfo/`;
-
 const web3Modal = new Web3Modal({ cacheProvider: true, providerOptions });
-const nexoContractAddress = '0xB62132e35a6c13ee1EE0f84dC5d40bad8d815206';
 
 function App() {
-  const [provider, setProvider] = useState<Provider>();
-  const [account, setAccount] = useState('');
-  const [network, setNetwork] = useState<Network>();
-  const [tokens, setTokens] = useState<Token[]>();
+  const [data, setData] = useState<Data>(initialData);
+  const { account, connectingWalletError, fetchTokensError, network, provider, tokens } = data;
 
   useEffect(() => {
-    if (web3Modal.cachedProvider) {
-      connectWallet();
+    if (provider?.provider.isMetaMask) {
+      provider.provider.on?.('chainChanged', handleChainChange);
+      provider.provider.on?.('accountsChanged', handleAccountsChange);
     }
 
     return () => {
@@ -61,137 +36,33 @@ function App() {
         provider.provider.removeListener?.('accountsChanged', handleAccountsChange);
       }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [provider]);
 
   const handleChainChange: ChainChangedEventHandler = () => {
     window.location.reload();
   };
   const handleAccountsChange: AccountsChangedEventHandler = ([newAccount]) => {
-    setAccount(newAccount);
-  };
-
-  async function connectWallet() {
-    try {
-      const web3ModalInstance = await web3Modal.connect();
-      const ethersProvider = new ethers.providers.Web3Provider(web3ModalInstance) as Provider;
-
-      const networkInfo = await ethersProvider.getNetwork();
-      setNetwork(networkInfo);
-
-      const [currAccount] = await ethersProvider.listAccounts();
-      if (currAccount) {
-        setAccount(currAccount);
-
-        const ethBalanceBigNum = await ethersProvider.getBalance(currAccount);
-        const formattedEthBalance = ethers.utils.formatEther(ethBalanceBigNum);
-        const ethBalance = parseFloat(formattedEthBalance);
-
-        const walletTokens: Token[] = [
-          {
-            name: 'Ethereum',
-            symbol: 'ETH',
-            decimals: 18,
-            balance: ethBalance,
-            totalSupply: 0
-          }
-        ];
-
-        if (networkInfo.chainId === ethMainnetChainId) {
-          const nexoContract = new ethers.Contract(
-            nexoContractAddress,
-            ABI as ContractInterface,
-            ethersProvider
-          );
-
-          const nexoSymbol = await nexoContract.symbol();
-          const nexoDecimals = await nexoContract.decimals();
-          const nexoTotalSupplyBigNum = await nexoContract.totalSupply();
-          const formattedNexoTotalSupply = ethers.utils.formatUnits(
-            nexoTotalSupplyBigNum,
-            nexoDecimals
-          );
-          const nexoTotalSupply = parseFloat(formattedNexoTotalSupply);
-          const nexoBalanceBigNum = await nexoContract.balanceOf(currAccount);
-          const nexoBalance = parseFloat(ethers.utils.formatUnits(nexoBalanceBigNum, nexoDecimals));
-
-          walletTokens.push({
-            name: 'Nexo',
-            symbol: nexoSymbol,
-            decimals: nexoDecimals,
-            balance: nexoBalance,
-            totalSupply: nexoTotalSupply
-          });
-
-          const addressInfoResp = await fetch(`${getAddressInfoUrl}${currAccount}?apiKey=freekey`);
-          const otherTokensInfo = await addressInfoResp.json();
-          console.log({ otherTokensInfo });
-
-          otherTokensInfo.tokens.forEach(
-            ({ tokenInfo: { name, decimals, symbol, totalSupply, holdersCount } }: any) => {
-              walletTokens.push({
-                name,
-                symbol,
-                decimals: parseInt(decimals),
-                balance: holdersCount,
-                totalSupply: Number(totalSupply)
-              });
-            }
-          );
-        }
-
-        setTokens(walletTokens);
-      }
-
-      // Handle chain and account changes in MetaMask
-      if (ethersProvider.provider.isMetaMask) {
-        ethersProvider.provider.on?.('chainChanged', handleChainChange);
-        ethersProvider.provider.on?.('accountsChanged', handleAccountsChange);
-      }
-
-      setProvider(ethersProvider);
-    } catch (err) {
-      console.log(err);
-    }
-  }
-
-  const disconnect = () => {
-    web3Modal.clearCachedProvider();
-    refreshState();
-  };
-
-  const refreshState = () => {
-    setProvider(undefined);
-    setAccount('');
-    setNetwork(undefined);
+    setData((prevState) => ({ ...prevState, account: newAccount }));
   };
 
   return (
-    <div>
+    <main>
       <h1>Crypto Wallet</h1>
-      {account ? (
-        <>
-          <p>{network?.name} Network</p>
-          <p>Connected to {account}</p>
-          <button onClick={disconnect}>Disconnect</button>
-        </>
-      ) : (
-        <button onClick={connectWallet}>Connect Wallet</button>
-      )}
-      {tokens?.map(({ name, balance, symbol }, index) => {
-        return (
-          <p key={index}>
-            <span>
-              {name}({symbol})
-            </span>
-            <span> Balance: {balance}</span>
-          </p>
-        );
-      })}
       {network?.chainId && network.chainId !== ethMainnetChainId && (
         <p>You have not selected the Ethereum Mainnet! Please switch to it!</p>
       )}
-    </div>
+      {account && (
+        <section>
+          Connected to {account}
+          {network?.name && network.name !== 'unknown' && (
+            <span> on the {network.name} network</span>
+          )}
+        </section>
+      )}
+      {connectingWalletError && <section>Error connecting wallet!</section>}
+      <TokenList tokens={tokens} fetchTokensError={fetchTokensError} />
+      <ConnectionButton data={data} setData={setData} web3Modal={web3Modal} />
+    </main>
   );
 }
 
