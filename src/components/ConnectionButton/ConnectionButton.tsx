@@ -2,19 +2,11 @@ import { useEffect } from 'react';
 import { ethers } from 'ethers';
 import Web3Modal from 'web3modal';
 
-import { formatBigNumber, getTokenInfo, roundTo2Decimals } from '../../utils';
-import { Provider, EthplorerTokenData, Data } from '../../types';
+import { getEthplorerData } from '../../utils';
+import { Provider, Data } from '../../types';
 import config from '../../config';
 
-const {
-  addressInfoUrl,
-  ethBaseInfo,
-  ethMainnetChainId,
-  ethplorerApiKey,
-  ethTestNetsids,
-  initialData,
-  nexoContractAddress
-} = config;
+const { ethBaseInfo, ethMainnetChainId, ethTestNetsids, initialData } = config;
 
 interface Props {
   data: Data;
@@ -34,7 +26,7 @@ function ConnectionButton({ data, setData, web3Modal }: Props) {
 
   const connectWallet = async () => {
     try {
-      const newData = {} as Data;
+      let newData = {} as Data;
       const web3ModalInstance = await web3Modal.connect();
       const ethersProvider = new ethers.providers.Web3Provider(web3ModalInstance) as Provider;
       newData.provider = ethersProvider;
@@ -43,38 +35,8 @@ function ConnectionButton({ data, setData, web3Modal }: Props) {
       newData.account = acc;
 
       if (newData.network.chainId === ethMainnetChainId) {
-        const addressInfoResp = await fetch(`${addressInfoUrl}${acc}?apiKey=${ethplorerApiKey}`);
-        const { error, ETH, tokens } = await addressInfoResp.json();
-
-        if (!error && ETH && tokens) {
-          const ethInfo = {
-            ...ethBaseInfo,
-            balance: roundTo2Decimals(ETH.balance),
-            totalSupply: roundTo2Decimals(ETH.price?.availableSupply)
-          };
-          const nexoInfo = await getTokenInfo(acc, nexoContractAddress, ethersProvider);
-          const walletTokens = [ethInfo, nexoInfo];
-
-          tokens.forEach(
-            ({
-              tokenInfo: { decimals, name, symbol, totalSupply },
-              rawBalance
-            }: EthplorerTokenData) => {
-              const decimalNum = parseInt(decimals);
-              walletTokens.push({
-                balance: formatBigNumber(rawBalance, decimalNum),
-                decimals: decimalNum,
-                name,
-                symbol,
-                totalSupply: formatBigNumber(totalSupply, decimalNum)
-              });
-            }
-          );
-
-          newData.tokens = walletTokens;
-        } else {
-          newData.fetchTokensError = true;
-        }
+        const ethplorerData = await getEthplorerData(acc, ethersProvider);
+        newData = { ...newData, ...ethplorerData };
       } else if (ethTestNetsids.includes(newData.network?.chainId || 0)) {
         const ethBalanceBigNum = await ethersProvider.getBalance(acc);
         const formattedEthBalance = ethers.utils.formatEther(ethBalanceBigNum);

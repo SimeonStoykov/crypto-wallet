@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import Web3Modal from 'web3modal';
 import WalletConnectProvider from '@walletconnect/web3-provider';
 
 import { AccountsChangedEventHandler, ChainChangedEventHandler, Data } from './types';
 import config from './config';
+import { getEthplorerData } from './utils';
 import ConnectionButton from './components/ConnectionButton/ConnectionButton';
 import TokenList from './components/TokenList/TokenList';
 
@@ -24,6 +25,20 @@ function App() {
   const [data, setData] = useState<Data>(initialData);
   const { account, connectingWalletError, fetchTokensError, network, provider, tokens } = data;
 
+  const handleChainChange: ChainChangedEventHandler = useCallback(() => {
+    window.location.reload();
+  }, []);
+
+  const handleAccountsChange: AccountsChangedEventHandler = useCallback(
+    async ([newAccount]) => {
+      if (provider) {
+        const ethplorerData = await getEthplorerData(newAccount, provider);
+        setData({ ...data, account: newAccount, ...ethplorerData });
+      }
+    },
+    [data, provider]
+  );
+
   useEffect(() => {
     if (provider?.provider.isMetaMask) {
       provider.provider.on?.('chainChanged', handleChainChange);
@@ -36,14 +51,7 @@ function App() {
         provider.provider.removeListener?.('accountsChanged', handleAccountsChange);
       }
     };
-  }, [provider]);
-
-  const handleChainChange: ChainChangedEventHandler = () => {
-    window.location.reload();
-  };
-  const handleAccountsChange: AccountsChangedEventHandler = ([newAccount]) => {
-    setData((prevState) => ({ ...prevState, account: newAccount }));
-  };
+  }, [provider, handleChainChange, handleAccountsChange]);
 
   return (
     <main>
