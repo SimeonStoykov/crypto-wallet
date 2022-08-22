@@ -1,14 +1,15 @@
 import { Token as TokenType } from '../../types';
+import './Token.css';
 
 function Token({ balance, decimals, name, symbol, totalSupply }: TokenType) {
   return (
-    <li>
-      <span>
+    <li className="token-card">
+      <p className="token-name">
         {name}({symbol})
-      </span>
-      <span> Balance: {balance}</span>
-      <span> Decimals: {decimals}</span>
-      {totalSupply && <span> Total supply: {totalSupply}</span>}
+      </p>
+      <p> Balance: {balance}</p>
+      <p> Decimals: {decimals}</p>
+      {totalSupply && <p className="token-total-supply"> Total supply: {totalSupply}</p>}
     </li>
   );
 }

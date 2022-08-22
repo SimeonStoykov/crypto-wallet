@@ -65,12 +65,12 @@ function App() {
             <p>You have not selected the Ethereum Mainnet! Please switch to it!</p>
           )}
           {account && (
-            <section>
+            <p className="connection-info">
               Connected to <strong>{account}</strong>
               {network?.name && network.name !== 'unknown' && (
                 <span> on the {network.name} network</span>
               )}
-            </section>
+            </p>
           )}
           <TokenList tokens={tokens} fetchTokensError={fetchTokensError} />
         </>

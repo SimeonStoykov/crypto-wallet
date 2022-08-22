@@ -5,6 +5,7 @@ import Web3Modal from 'web3modal';
 import { getEthplorerData } from '../../utils';
 import { Provider, Data } from '../../types';
 import config from '../../config';
+import './ConnectionButton.css';
 
 const { ethBaseInfo, ethMainnetChainId, ethTestNetsids, initialData } = config;
 

@@ -1,5 +1,6 @@
 import { Token as TokenType } from '../../types';
 import Token from '../Token/Token';
+import './TokenList.css';
 
 interface Props {
   fetchTokensError: boolean;

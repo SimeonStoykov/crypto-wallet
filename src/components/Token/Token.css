@@ -1,0 +1,16 @@
+.token-card {
+  background-color: #1e4dd8;
+  padding: 15px;
+  color: white;
+  border-radius: 8px;
+}
+
+.token-name {
+  text-align: center;
+  font-weight: bold;
+  margin-top: 0;
+}
+
+.token-total-supply {
+  margin-bottom: 0;
+}
