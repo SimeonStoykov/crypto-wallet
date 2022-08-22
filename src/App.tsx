@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import Web3Modal from 'web3modal';
 import WalletConnectProvider from '@walletconnect/web3-provider';
+import ReactLoading from 'react-loading';
 
 import { AccountsChangedEventHandler, ChainChangedEventHandler, Data } from './types';
 import config from './config';
@@ -57,7 +58,7 @@ function App() {
     <main>
       <h1>Crypto Wallet</h1>
       {connectingWalletLoading ? (
-        <p>Loading...</p>
+        <ReactLoading type="bubbles" color="black" height={50} width={100} />
       ) : (
         <>
           {network?.chainId && network.chainId !== ethMainnetChainId && (
